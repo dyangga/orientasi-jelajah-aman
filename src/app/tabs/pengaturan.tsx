@@ -1,10 +1,11 @@
 // app/(tabs)/pengaturan.tsx 
-import { Text, View } from "react-native";
+import { Text } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 export default function TabPengaturan() {
     return (
-        <View style={{ padding: 16 }}>
+        <SafeAreaView style={{ padding: 16 }}>
             <Text style={{ fontSize: 18, fontWeight: "bold" }}>Jelajah Aman</Text>
             <Text>Versi 1.0.0</Text>
-        </View>
+        </SafeAreaView>
     );
 } 
