@@ -1,12 +1,15 @@
 // src/app/(tabs)/index.tsx
-import { router } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ambilSemuaFavorit } from "../../services/favoritStorage";
+
 import {
   ActivityIndicator,
+  Alert,
   Button,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AtribusiCuaca from "../../components/AtribusiCuaca";
@@ -39,6 +42,24 @@ export default function HalamanUtama() {
 
   const teksTertunda = useDebounce(teksCari, 500);
   const requestIdRef = useRef(0); // pencegah race condition
+
+  
+const [idFavorit, setIdFavorit] = useState<number[]>([]);
+
+const muatIdFavorit = useCallback(async () => {
+  try {
+    const daftar = await ambilSemuaFavorit();
+    setIdFavorit(daftar.map((kota) => kota.id));
+  } catch {
+    Alert.alert("Error", "Gagal memuat daftar favorit.");
+  }
+}, []);
+
+useFocusEffect(
+  useCallback(() => {
+    void muatIdFavorit();
+  }, [muatIdFavorit])
+);
 
   useEffect(() => {
     if (teksTertunda.trim().length === 0) {
@@ -125,6 +146,7 @@ export default function HalamanUtama() {
         </View>
       )}
 
+    
       {cuaca && kualitasUdara && kotaTerpilih && !sedangMemuat && (
         <>
           <WeatherCard
@@ -132,43 +154,23 @@ export default function HalamanUtama() {
             suhu={cuaca.saatIni.suhu}
             tingkatAQI={konversiTingkatAQI(kualitasUdara.indeksAQI)}
           />
-          <Button
-            title="Tambahkan ke Favorit"
-            onPress={() =>
-              router.push({
-                pathname: "/tambah-favorit",
-                params: {
-                  id: String(kotaTerpilih.id),
-                  nama: kotaTerpilih.name,
-                  lat: String(kotaTerpilih.latitude),
-                  lon: String(kotaTerpilih.longitude),
-                },
-              })
-            }
-          />
-        </>
-      )}
-      {cuaca && kualitasUdara && kotaTerpilih && !sedangMemuat && (
-        <>
-          <WeatherCard
-            kota={kotaTerpilih.name}
-            suhu={cuaca.saatIni.suhu}
-            tingkatAQI={konversiTingkatAQI(kualitasUdara.indeksAQI)}
-          />
-          <Button
-            title="Tambahkan ke Favorit"
-            onPress={() =>
-              router.push({
-                pathname: "/tambah-favorit",
-                params: {
-                  id: String(kotaTerpilih.id),
-                  nama: kotaTerpilih.name,
-                  lat: String(kotaTerpilih.latitude),
-                  lon: String(kotaTerpilih.longitude),
-                },
-              })
-            }
-          />
+          
+          {!idFavorit.includes(kotaTerpilih.id) && (
+            <Button
+              title="Tambahkan ke Favorit"
+              onPress={() =>
+                router.push({
+                  pathname: "/tambah-favorit",
+                  params: {
+                    id: String(kotaTerpilih.id),
+                    nama: kotaTerpilih.name,
+                    lat: String(kotaTerpilih.latitude),
+                    lon: String(kotaTerpilih.longitude),
+                  },
+                })
+              }
+            />
+          )}
         </>
       )}
 
