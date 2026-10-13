@@ -229,6 +229,10 @@ useFocusEffect(
             tingkatAQI={konversiTingkatAQI(kualitasUdara.indeksAQI)}
           />
           
+          {idFavorit.includes(kotaTerpilih.id) && (
+            <Button title="Kota ini sudah di tambahkan ke favorit" />
+          )}
+
           {!idFavorit.includes(kotaTerpilih.id) && (
             <Button
               title="Tambahkan ke Favorit"
