@@ -13,6 +13,8 @@ const VERSI_SEED_KOTA = "1";
 
 /** ID kota bawaan = basis + kode wilayah (mis. 33.75 -> 1000003375), tidak bentrok dengan ID geocoding. */
 export const BASIS_ID_KOTA_BAWAAN = 1_000_000_000;
+/** ID kota hasil sinkron API wilayah = basis + kode wilayah. */
+export const BASIS_ID_KOTA_API = 2_000_000_000;
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 

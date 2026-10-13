@@ -27,7 +27,7 @@ export async function unduhSemuaKota(
 ): Promise<{ berhasil: number; total: number }> {
   const db = await getDb();
   const kota = await db.getAllAsync<{ latitude: number; longitude: number }>(
-    "SELECT latitude, longitude FROM kota WHERE sumber = 'seed' ORDER BY id",
+    "SELECT latitude, longitude FROM kota WHERE sumber IN ('seed', 'api') ORDER BY id",
   );
 
   let berhasil = 0;
