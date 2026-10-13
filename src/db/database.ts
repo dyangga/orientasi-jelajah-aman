@@ -1,11 +1,18 @@
 // src/db/database.ts
 // Satu-satunya pintu masuk ke database SQLite lokal.
 import * as SQLite from "expo-sqlite";
+import kotaIndonesia from "../data/kotaIndonesia.json";
 
 const NAMA_DB = "jelajah-aman.db";
 
 // Naikkan angka ini dan tambahkan blok `if (versi < N)` di bawah setiap kali skema berubah.
-const VERSI_SKEMA = 1;
+const VERSI_SKEMA = 2;
+
+// Naikkan bila isi kotaIndonesia.json diperbarui agar di-seed ulang.
+const VERSI_SEED_KOTA = "1";
+
+/** ID kota bawaan = basis + kode wilayah (mis. 33.75 -> 1000003375), tidak bentrok dengan ID geocoding. */
+export const BASIS_ID_KOTA_BAWAAN = 1_000_000_000;
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -69,8 +76,51 @@ async function bukaDanMigrasi(): Promise<SQLite.SQLiteDatabase> {
     });
   }
 
+  if (versi < 2) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        ALTER TABLE kota ADD COLUMN sumber TEXT NOT NULL DEFAULT 'cache';
+        ALTER TABLE kota ADD COLUMN ibukota_kecil TEXT;
+      `);
+    });
+  }
+
   await db.execAsync(`PRAGMA user_version = ${VERSI_SKEMA};`);
+  await seedKotaBawaan(db);
   return db;
+}
+
+/** Memasukkan seluruh kabupaten/kota Indonesia ke tabel kota (sekali saja per versi data). */
+async function seedKotaBawaan(db: SQLite.SQLiteDatabase): Promise<void> {
+  const tanda = await db.getFirstAsync<{ nilai: string }>(
+    "SELECT nilai FROM status_app WHERE kunci = 'seed_kota'",
+  );
+  if (tanda?.nilai === VERSI_SEED_KOTA) return;
+
+  await db.withTransactionAsync(async () => {
+    for (const k of kotaIndonesia) {
+      const nama = k.n;
+      const tanpaAwalan = nama.replace(/^(Kabupaten|Kota) /, "");
+      await db.runAsync(
+        `INSERT OR REPLACE INTO kota
+           (id, nama, nama_kecil, ibukota_kecil, admin1, negara, latitude, longitude, terakhir_dipakai, sumber)
+         VALUES (?, ?, ?, ?, ?, 'Indonesia', ?, ?,
+                 COALESCE((SELECT terakhir_dipakai FROM kota WHERE id = ?), 0), 'seed')`,
+        BASIS_ID_KOTA_BAWAAN + Number(k.k.replace(".", "")),
+        nama,
+        tanpaAwalan.toLowerCase(),
+        k.i.toLowerCase(),
+        k.p,
+        k.a,
+        k.o,
+        BASIS_ID_KOTA_BAWAAN + Number(k.k.replace(".", "")),
+      );
+    }
+    await db.runAsync(
+      "INSERT OR REPLACE INTO status_app (kunci, nilai) VALUES ('seed_kota', ?)",
+      VERSI_SEED_KOTA,
+    );
+  });
 }
 
 export async function bacaStatus(kunci: string): Promise<string | null> {

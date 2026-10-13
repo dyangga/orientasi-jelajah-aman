@@ -1,6 +1,11 @@
 // src/services/cuacaRepository.ts
 // Menggabungkan jaringan + cache SQLite. UI cukup memanggil file ini.
-import { bacaStatus, getDb, tulisStatus } from "../db/database";
+import {
+  BASIS_ID_KOTA_BAWAAN,
+  bacaStatus,
+  getDb,
+  tulisStatus,
+} from "../db/database";
 import { HasilGeocoding } from "../types/geocoding";
 import { DataCuacaLengkap, DataKualitasUdara } from "../types/weather";
 import { ambilKualitasUdara } from "./airQualityService";
@@ -48,6 +53,15 @@ export async function ambilCuacaLengkap(
 export async function simpanKota(kota: HasilGeocoding): Promise<void> {
   if (kota.id < 0) return; // "Lokasi Saat Ini" tidak disimpan sebagai kota
   const db = await getDb();
+  if (kota.id >= BASIS_ID_KOTA_BAWAAN) {
+    // kota bawaan sudah ada: cukup tandai baru dipakai agar naik di urutan pencarian
+    await db.runAsync(
+      "UPDATE kota SET terakhir_dipakai = ? WHERE id = ?",
+      Date.now(),
+      kota.id,
+    );
+    return;
+  }
   await db.runAsync(
     `INSERT OR REPLACE INTO kota
        (id, nama, nama_kecil, admin1, negara, latitude, longitude, terakhir_dipakai)
@@ -77,10 +91,17 @@ async function cariKotaLokal(nama: string): Promise<HasilGeocoding[]> {
   // Escape karakter khusus LIKE agar input pengguna diperlakukan sebagai teks biasa
   const aman = nama.trim().toLowerCase().replace(/[\\%_]/g, "\\$&");
   const baris = await db.getAllAsync<BarisKota>(
-    `SELECT id, nama, admin1, negara, latitude, longitude FROM kota
-     WHERE nama_kecil LIKE ? ESCAPE '\\'
-     ORDER BY terakhir_dipakai DESC LIMIT 5`,
+    `SELECT id, nama, admin1, negara, latitude, longitude FROM kota AS k
+     WHERE (k.nama_kecil LIKE ?1 ESCAPE '\\'
+            OR k.nama_kecil LIKE ?2 ESCAPE '\\'
+            OR k.ibukota_kecil LIKE ?1 ESCAPE '\\')
+       AND NOT (k.sumber = 'cache' AND EXISTS (
+             SELECT 1 FROM kota s
+             WHERE s.sumber = 'seed' AND s.nama_kecil = k.nama_kecil))
+     ORDER BY k.terakhir_dipakai DESC, k.nama
+     LIMIT 8`,
     `${aman}%`,
+    `% ${aman}%`,
   );
   return baris.map((b) => ({
     id: b.id,

@@ -18,7 +18,11 @@ export async function ambilCuaca(
     throw new Error(`Gagal memuat cuaca (status ${response.status})`);
   }
 
-  const data = await response.json();
+  return petaCuaca(await response.json());
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function petaCuaca(data: any): DataCuacaLengkap {
   return {
     saatIni: {
       suhu: data.current.temperature_2m,
@@ -33,4 +37,23 @@ export async function ambilCuaca(
       kodeCuaca: data.daily.weather_code,
     },
   };
+}
+
+/** Banyak lokasi dalam satu request (Open-Meteo menerima daftar dipisah koma). Urutan hasil = urutan input. */
+export async function ambilCuacaBanyak(
+  titik: { latitude: number; longitude: number }[],
+): Promise<DataCuacaLengkap[]> {
+  const url =
+    `${BASE_URL}?latitude=${titik.map((t) => t.latitude).join(",")}` +
+    `&longitude=${titik.map((t) => t.longitude).join(",")}` +
+    `&current=temperature_2m,weather_code,wind_speed_10m` +
+    `&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto`;
+
+  const response = await fetchDenganBatasWaktu(url, 20000);
+  if (!response.ok) {
+    throw new Error(`Gagal memuat cuaca (status ${response.status})`);
+  }
+  const data = await response.json();
+  const daftar = Array.isArray(data) ? data : [data]; // 1 lokasi -> objek tunggal
+  return daftar.map(petaCuaca);
 }

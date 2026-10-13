@@ -4,8 +4,8 @@ import { getDb } from "../db/database";
 
 /** Data lebih muda dari ini dianggap segar: langsung dipakai tanpa menyentuh jaringan. */
 export const TTL_SEGAR_MS = 10 * 60 * 1000; // 10 menit
-/** Entri lebih tua dari ini dibuang saat pembersihan. */
-export const UMUR_MAKSIMAL_MS = 7 * 24 * 60 * 60 * 1000; // 7 hari
+/** Entri lebih tua dari ini dibuang saat pembersihan (cukup lama agar tetap ada saat offline berhari-hari). */
+export const UMUR_MAKSIMAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 hari
 
 export interface HasilCache<T> {
   data: T;
@@ -109,6 +109,24 @@ export async function ambilDenganCache<T>(
     }
     throw err;
   }
+}
+
+/** Menyimpan banyak entri sekaligus dalam satu transaksi (dipakai unduhan massal). */
+export async function simpanCacheBanyak(
+  entri: { kunci: string; data: unknown }[],
+): Promise<void> {
+  const db = await getDb();
+  const sekarang = Date.now();
+  await db.withTransactionAsync(async () => {
+    for (const e of entri) {
+      await db.runAsync(
+        "INSERT OR REPLACE INTO cache_api (kunci, payload, disimpan_pada) VALUES (?, ?, ?)",
+        e.kunci,
+        JSON.stringify(e.data),
+        sekarang,
+      );
+    }
+  });
 }
 
 /** Koordinat dibulatkan 2 desimal (~1 km) agar lokasi GPS yang berdekatan memakai cache yang sama. */
