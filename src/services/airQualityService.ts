@@ -1,5 +1,6 @@
 // src/services/airQualityService.ts
 import { DataKualitasUdara } from "../types/weather";
+import { fetchDenganBatasWaktu } from "./http";
 
 const BASE_URL = "https://air-quality-api.open-meteo.com/v1/air-quality";
 
@@ -7,10 +8,9 @@ export async function ambilKualitasUdara(
   latitude: number,
   longitude: number,
 ): Promise<DataKualitasUdara> {
-  const url = `${BASE_URL}?latitude=${latitude}&longitude=${longitude}&current=european_aqi,pm2_5,
-pm10`;
+  const url = `${BASE_URL}?latitude=${latitude}&longitude=${longitude}&current=european_aqi,pm2_5,pm10`;
 
-  const response = await fetch(url);
+  const response = await fetchDenganBatasWaktu(url);
   if (!response.ok) {
     throw new Error(`Gagal memuat kualitas udara (status ${response.status})`);
   }

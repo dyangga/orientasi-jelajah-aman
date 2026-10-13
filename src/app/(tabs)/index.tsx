@@ -17,14 +17,19 @@ import SearchBox from "../../components/SearchBox";
 import WeatherCard from "../../components/WeatherCard";
 import { labelKodeCuaca } from "../../constants/weatherCodes";
 import { useDebounce } from "../../hooks/use-debounce";
-import { ambilKualitasUdara } from "../../services/airQualityService";
-import { cariKota } from "../../services/geocodingService";
+import { bersihkanCacheLama } from "../../services/cacheService";
+import {
+  ambilCuacaLengkap,
+  ambilKotaTerakhir,
+  cariKotaDenganFallback,
+  simpanKota,
+  simpanKotaTerakhir,
+} from "../../services/cuacaRepository";
 import {
   ambilKoordinatSaatIni,
   mintaIzinLokasi,
 } from "../../services/locationService";
 import { konversiTingkatAQI } from "../../services/weatherAdapter";
-import { ambilCuaca } from "../../services/weatherService";
 import { HasilGeocoding } from "../../types/geocoding";
 import { DataCuacaLengkap, DataKualitasUdara } from "../../types/weather";
 
@@ -39,6 +44,9 @@ export default function HalamanUtama() {
   const [sedangMemuat, setSedangMemuat] = useState(false);
   const [pesanError, setPesanError] = useState<string | null>(null);
   const [pesanLokasi, setPesanLokasi] = useState<string | null>(null);
+  const [offline, setOffline] = useState(false);
+  const [pencarianOffline, setPencarianOffline] = useState(false);
+  const [diperbaruiPada, setDiperbaruiPada] = useState<number | null>(null);
 
   const teksTertunda = useDebounce(teksCari, 500);
   const requestIdRef = useRef(0); // pencegah race condition
@@ -66,30 +74,61 @@ useFocusEffect(
       setHasilPencarian([]);
       return;
     }
-    cariKota(teksTertunda)
-      .then(setHasilPencarian)
-      .catch(() => setHasilPencarian([]));
+    let batal = false;
+    cariKotaDenganFallback(teksTertunda).then(({ hasil, offline }) => {
+      if (batal) return; // teks sudah berubah, abaikan hasil lama
+      setHasilPencarian(hasil);
+      setPencarianOffline(offline);
+    });
+    return () => {
+      batal = true;
+    };
   }, [teksTertunda]);
 
-  async function pilihKota(kota: HasilGeocoding) {
+  // Saat aplikasi dibuka: bersihkan cache lama dan tampilkan kota terakhir
+  // (dari cache bila tidak ada internet).
+  useEffect(() => {
+    void bersihkanCacheLama().catch(() => {});
+    ambilKotaTerakhir()
+      .then((kota) => {
+        if (kota) void pilihKota(kota, { simpan: false });
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function pilihKota(
+    kota: HasilGeocoding,
+    opsi: { paksa?: boolean; simpan?: boolean } = {},
+  ) {
     setKotaTerpilih(kota);
     const idSaatIni = ++requestIdRef.current;
     setSedangMemuat(true);
     setPesanError(null);
 
     try {
-      const [dataCuaca, dataAQI] = await Promise.all([
-        ambilCuaca(kota.latitude, kota.longitude),
-        ambilKualitasUdara(kota.latitude, kota.longitude),
-      ]);
+      const hasil = await ambilCuacaLengkap(
+        kota.latitude,
+        kota.longitude,
+        opsi.paksa ?? false,
+      );
 
       if (idSaatIni !== requestIdRef.current) return; // hasil basi, abaikan
 
-      setCuaca(dataCuaca);
-      setKualitasUdara(dataAQI);
+      setCuaca(hasil.cuaca);
+      setKualitasUdara(hasil.kualitasUdara);
+      setOffline(hasil.offline);
+      setDiperbaruiPada(hasil.diperbaruiPada);
+
+      if (opsi.simpan !== false) {
+        void simpanKota(kota).catch(() => {});
+        void simpanKotaTerakhir(kota).catch(() => {});
+      }
     } catch (err) {
       if (idSaatIni !== requestIdRef.current) return;
-      setPesanError("Gagal memuat data cuaca. Periksa koneksi internet Anda.");
+      setPesanError(
+        "Tidak ada koneksi internet dan belum ada data tersimpan untuk kota ini.",
+      );
     } finally {
       if (idSaatIni === requestIdRef.current) setSedangMemuat(false);
     }
@@ -128,6 +167,19 @@ useFocusEffect(
       <Button title="Gunakan Lokasi Saat Ini" onPress={gunakanLokasiSaatIni} />
       {pesanLokasi && <Text>{pesanLokasi}</Text>}
 
+      {pencarianOffline && hasilPencarian.length > 0 && (
+        <Text style={{ fontSize: 12, color: "#888" }}>
+          Offline: menampilkan kota yang pernah Anda cari
+        </Text>
+      )}
+      {pencarianOffline &&
+        hasilPencarian.length === 0 &&
+        teksTertunda.trim().length > 0 && (
+          <Text style={{ fontSize: 12, color: "#888" }}>
+            Offline: kota ini belum pernah dicari sebelumnya
+          </Text>
+        )}
+
       {hasilPencarian.map((kota) => (
         <TouchableOpacity key={kota.id} onPress={() => pilihKota(kota)}>
           <Text>{kota.name}</Text>
@@ -141,7 +193,29 @@ useFocusEffect(
           <Text>{pesanError}</Text>
           <Button
             title="Coba Lagi"
-            onPress={() => kotaTerpilih && pilihKota(kotaTerpilih)}
+            onPress={() =>
+              kotaTerpilih && pilihKota(kotaTerpilih, { paksa: true })
+            }
+          />
+        </View>
+      )}
+
+      {offline && cuaca && diperbaruiPada && !sedangMemuat && (
+        <View
+          accessible
+          accessibilityRole="alert"
+          style={{ padding: 12, borderRadius: 8, backgroundColor: "#FFF4D6" }}
+        >
+          <Text style={{ fontWeight: "bold" }}>Mode offline</Text>
+          <Text>
+            Menampilkan data tersimpan, terakhir diperbarui{" "}
+            {new Date(diperbaruiPada).toLocaleString("id-ID")}.
+          </Text>
+          <Button
+            title="Perbarui"
+            onPress={() =>
+              kotaTerpilih && pilihKota(kotaTerpilih, { paksa: true })
+            }
           />
         </View>
       )}
