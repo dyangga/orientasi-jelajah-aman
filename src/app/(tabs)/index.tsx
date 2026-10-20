@@ -1,5 +1,5 @@
 // src/app/(tabs)/index.tsx
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -28,6 +28,7 @@ import {
 } from "../../services/cuacaRepository";
 import { ambilSemuaFavorit } from "../../services/favoritStorage";
 import { cariKota } from "../../services/geocodingService";
+import { tambahRiwayat } from "../../services/riwayatPencarianStorage";
 import {
   ambilKoordinatSaatIni,
   mintaIzinLokasi,
@@ -48,6 +49,16 @@ export default function HalamanUtama() {
   const [sedangMemuat, setSedangMemuat] = useState(false);
   const [pesanError, setPesanError] = useState<string | null>(null);
   const [pesanLokasi, setPesanLokasi] = useState<string | null>(null);
+
+  // Parameter dari tab Riwayat: saat sebuah riwayat diklik, pencarian kota itu dijalankan
+  const params = useLocalSearchParams<{
+    cariId?: string;
+    cariNama?: string;
+    cariLat?: string;
+    cariLon?: string;
+    cariNegara?: string;
+    cariTs?: string;
+  }>();
 
   const teksTertunda = useDebounce(teksCari, 500);
   const requestIdRef = useRef(0); // pencegah race condition
@@ -121,6 +132,30 @@ export default function HalamanUtama() {
     }
   }
 
+  // Kota yang dipilih dari hasil pencarian dicatat ke riwayat pencarian
+  function pilihDariPencarian(kota: HasilGeocoding) {
+    tambahRiwayat(kota).catch(() => {});
+    return pilihKota(kota);
+  }
+
+  // Riwayat diklik -> isi kotak cari, tampilkan hasil pencarian, dan muat cuacanya
+  useEffect(() => {
+    if (!params.cariTs || !params.cariNama) return;
+    const lat = Number(params.cariLat);
+    const lon = Number(params.cariLon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+    setTeksCari(params.cariNama);
+    void pilihDariPencarian({
+      id: Number(params.cariId),
+      name: params.cariNama,
+      latitude: lat,
+      longitude: lon,
+      country: params.cariNegara ?? "",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.cariTs]);
+
   async function gunakanLokasiSaatIni() {
     const status = await mintaIzinLokasi();
 
@@ -160,7 +195,7 @@ export default function HalamanUtama() {
         contentContainerStyle={{ padding: 16, gap: 16 }}
         keyboardShouldPersistTaps="handled"
       >
-        <SearchBox onCari={setTeksCari} />
+        <SearchBox onCari={setTeksCari} nilai={teksCari} />
 
         <Button title="Gunakan Lokasi Saat Ini" onPress={gunakanLokasiSaatIni} />
         {pesanLokasi && (
@@ -168,7 +203,10 @@ export default function HalamanUtama() {
         )}
 
         {hasilPencarian.map((kota) => (
-          <TouchableOpacity key={kota.id} onPress={() => pilihKota(kota)}>
+          <TouchableOpacity
+            key={kota.id}
+            onPress={() => pilihDariPencarian(kota)}
+          >
             <Text>{kota.name}</Text>
           </TouchableOpacity>
         ))}
