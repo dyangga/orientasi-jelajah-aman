@@ -1,13 +1,7 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import {
-  Alert,
-  Button,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, Button, ScrollView, TouchableOpacity, View } from "react-native";
+import Teks from "../../components/Teks";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
@@ -20,9 +14,11 @@ import {
 } from "../../services/riwayatPencarianStorage";
 import { KotaFavorit } from "../../types/favorit";
 import { RiwayatPencarian } from "../../types/riwayat";
+import { useTema } from "../../context/TemaContext";
 import { konfirmasi } from "../../utils/konfirmasi";
 
 export default function TabRiwayat() {
+  const { warna } = useTema();
   const [daftarFavorit, setDaftarFavorit] = useState<KotaFavorit[]>([]);
   const [riwayat, setRiwayat] = useState<RiwayatPencarian[]>([]);
 
@@ -75,14 +71,14 @@ export default function TabRiwayat() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: warna.latar }}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-        <Text style={{ fontSize: 18, fontWeight: "bold" }}>Kota Favorit</Text>
+        <Teks style={{ fontSize: 18, fontWeight: "bold" }}>Kota Favorit</Teks>
 
         {/* Tambahan latihan mandiri: jumlah kota favorit */}
-        <Text>Tersimpan {daftarFavorit.length} kota</Text>
+        <Teks>Tersimpan {daftarFavorit.length} kota</Teks>
 
-        {daftarFavorit.length === 0 && <Text>Belum ada kota favorit</Text>}
+        {daftarFavorit.length === 0 && <Teks>Belum ada kota favorit</Teks>}
 
         {daftarFavorit.map((kota) => (
           <View
@@ -93,21 +89,21 @@ export default function TabRiwayat() {
               alignItems: "center",
             }}
           >
-            <Text>{kota.nama}</Text>
+            <Teks>{kota.nama}</Teks>
 
             {/* Tombol sekarang meminta konfirmasi dahulu */}
             <Button title="Hapus" onPress={() => konfirmasiHapus(kota)} />
           </View>
         ))}
 
-        <Text style={{ fontSize: 18, fontWeight: "bold", marginTop: 12 }}>
+        <Teks style={{ fontSize: 18, fontWeight: "bold", marginTop: 12 }}>
           Riwayat Pencarian
-        </Text>
-        <Text style={{ fontSize: 12, color: "#888888" }}>
+        </Teks>
+        <Teks style={{ fontSize: 12, color: "#888888" }}>
           Maksimal 10 pencarian terakhir. Ketuk untuk mencari lagi.
-        </Text>
+        </Teks>
 
-        {riwayat.length === 0 && <Text>Belum ada riwayat pencarian</Text>}
+        {riwayat.length === 0 && <Teks>Belum ada riwayat pencarian</Teks>}
 
         {riwayat.map((r) => (
           <TouchableOpacity
@@ -117,10 +113,10 @@ export default function TabRiwayat() {
             accessibilityLabel={`Cari lagi cuaca ${r.name}`}
             style={{ paddingVertical: 6 }}
           >
-            <Text>{r.name}</Text>
-            <Text style={{ fontSize: 12, color: "#888888" }}>
+            <Teks>{r.name}</Teks>
+            <Teks style={{ fontSize: 12, color: "#888888" }}>
               {[r.admin1, r.country].filter(Boolean).join(", ")}
-            </Text>
+            </Teks>
           </TouchableOpacity>
         ))}
 

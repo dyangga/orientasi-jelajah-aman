@@ -1,6 +1,8 @@
 // src/app/tambah-favorit.tsx
 import { router, useLocalSearchParams } from "expo-router";
-import { Button, Text, View } from "react-native";
+import { Button, View } from "react-native";
+import Teks from "../components/Teks";
+import { useTema } from "../context/TemaContext";
 import { tambahFavorit } from "../services/favoritStorage";
 
 export default function ModalTambahFavorit() {
@@ -21,9 +23,11 @@ export default function ModalTambahFavorit() {
     router.back();
   }
 
+  const { warna } = useTema();
+
   return (
-    <View style={{ padding: 16, gap: 16 }}>
-      <Text>Tambahkan {nama} ke daftar favorit?</Text>
+    <View style={{ flex: 1, padding: 16, gap: 16, backgroundColor: warna.latar }}>
+      <Teks>Tambahkan {nama} ke daftar favorit?</Teks>
       <Button title="Simpan" onPress={simpan} />
     </View>
   );

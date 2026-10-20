@@ -1,15 +1,8 @@
 // src/app/(tabs)/index.tsx
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Button,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Button, ScrollView, TouchableOpacity, View } from "react-native";
+import Teks from "../../components/Teks";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import AtribusiCuaca from "../../components/AtribusiCuaca";
@@ -36,10 +29,12 @@ import {
 } from "../../services/locationService";
 import { konversiTingkatAQI } from "../../services/weatherAdapter";
 import { HasilCuacaOffline, RingkasanKotaTersimpan } from "../../types/cache";
+import { useTema } from "../../context/TemaContext";
 import { konfirmasi } from "../../utils/konfirmasi";
 import { HasilGeocoding } from "../../types/geocoding";
 
 export default function HalamanUtama() {
+  const { warna } = useTema();
   const [teksCari, setTeksCari] = useState("");
   const [hasilPencarian, setHasilPencarian] = useState<HasilGeocoding[]>([]);
   const [kotaTerpilih, setKotaTerpilih] = useState<HasilGeocoding | null>(null);
@@ -208,7 +203,7 @@ export default function HalamanUtama() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: warna.latar }}>
       <ScrollView
         contentContainerStyle={{ padding: 16, gap: 16 }}
         keyboardShouldPersistTaps="handled"
@@ -217,7 +212,7 @@ export default function HalamanUtama() {
 
         <Button title="Gunakan Lokasi Saat Ini" onPress={gunakanLokasiSaatIni} />
         {pesanLokasi && (
-          <Text accessibilityLabel={pesanLokasi}>{pesanLokasi}</Text>
+          <Teks accessibilityLabel={pesanLokasi}>{pesanLokasi}</Teks>
         )}
 
         {hasilPencarian.map((kota) => (
@@ -225,15 +220,15 @@ export default function HalamanUtama() {
             key={kota.id}
             onPress={() => pilihDariPencarian(kota)}
           >
-            <Text>{kota.name}</Text>
+            <Teks>{kota.name}</Teks>
           </TouchableOpacity>
         ))}
 
         {kotaTersimpan.length > 0 && (
           <View style={{ gap: 6 }}>
-            <Text style={{ fontWeight: "bold" }}>
+            <Teks style={{ fontWeight: "bold" }}>
               Tersimpan di perangkat (bisa dibuka offline)
-            </Text>
+            </Teks>
             {kotaTersimpan.map((k) => (
               <View
                 key={k.kunci}
@@ -255,7 +250,7 @@ export default function HalamanUtama() {
                     })
                   }
                 >
-                  <Text>{k.nama}</Text>
+                  <Teks>{k.nama}</Teks>
                 </TouchableOpacity>
                 <Button
                   title="Hapus"
@@ -267,11 +262,11 @@ export default function HalamanUtama() {
           </View>
         )}
 
-        {sedangMemuat && <ActivityIndicator />}
+        {sedangMemuat && <ActivityIndicator color={warna.aksen} />}
 
         {pesanError && (
           <View>
-            <Text accessibilityLabel={pesanError}>{pesanError}</Text>
+            <Teks accessibilityLabel={pesanError}>{pesanError}</Teks>
             <Button
               title="Coba Lagi"
               onPress={() => kotaTerpilih && pilihKota(kotaTerpilih, true)}
@@ -290,25 +285,25 @@ export default function HalamanUtama() {
               suhu={hasil.cuaca.saatIni.suhu}
               tingkatAQI={konversiTingkatAQI(hasil.kualitasUdara.indeksAQI)}
             />
-            <Text style={{ fontSize: 12, color: "#888888" }}>
+            <Teks style={{ fontSize: 12, color: "#888888" }}>
               Kondisi: {labelKodeCuaca(hasil.cuaca.saatIni.kodeCuaca)}{" "}
               {"•"} Angin {hasil.cuaca.saatIni.kecepatanAngin} km/j
-            </Text>
+            </Teks>
             <View>
-              <Text style={{ fontSize: 14 }}>
+              <Teks style={{ fontSize: 14 }}>
                 Suhu Maksimal Hari Ini: {hasil.cuaca.harian.suhuMaksimal[0]}°C
-              </Text>
-              <Text style={{ fontSize: 14 }}>
+              </Teks>
+              <Teks style={{ fontSize: 14 }}>
                 Suhu Minimal Hari Ini: {hasil.cuaca.harian.suhuMinimal[0]}°C
-              </Text>
+              </Teks>
             </View>
             <View>
-              <Text style={{ fontSize: 12, color: "#888888" }}>
+              <Teks style={{ fontSize: 12, color: "#888888" }}>
                 PM2.5: {hasil.kualitasUdara.pm25} µg/m³
-              </Text>
-              <Text style={{ fontSize: 12, color: "#888888" }}>
+              </Teks>
+              <Teks style={{ fontSize: 12, color: "#888888" }}>
                 PM10: {hasil.kualitasUdara.pm10} µg/m³
-              </Text>
+              </Teks>
             </View>
             <Button
               title="Perbarui Sekarang"
