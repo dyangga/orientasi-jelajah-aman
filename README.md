@@ -6,6 +6,15 @@ Aplikasi cuaca dan kualitas udara berbasis Expo (React Native + TypeScript) yang
 
 **Cache-segar** berarti data tersimpan di perangkat berumur kurang dari 30 menit (TTL), sehingga aplikasi langsung memakainya tanpa memanggil internet. **Cache-basi** berarti umur data sudah 30 menit atau lebih dan internet gagal dijangkau, sehingga aplikasi tetap menampilkan data lama itu dengan label oranye "Mode offline - data tersimpan mungkin sudah usang". **First-run offline** berarti belum ada cache sama sekali dan internet juga tidak ada, sehingga tidak ada data yang bisa ditampilkan dan pengguna hanya melihat pesan error beserta tombol "Coba Lagi". Label status ini penting karena pengguna berhak tahu apakah angka suhu dan kualitas udara yang dilihat itu baru dari internet atau salinan lama, supaya tidak salah mengambil keputusan (misalnya soal udara yang tidak sehat) berdasarkan data yang sudah usang.
 
+## Fitur Penyempurnaan UTS
+
+1. **Ikon tab bar dan label navigasi** - tiap tab punya ikon Ionicons (`@expo/vector-icons`); tab Riwayat menjadi "Favorit & Riwayat".
+2. **Riwayat pencarian** - maksimal 10 kota terakhir, disimpan di AsyncStorage; mengetuk riwayat menjalankan pencarian kota itu di Beranda.
+3. **Hapus cache per kota** - tombol Hapus di daftar "Tersimpan di perangkat" dengan dialog konfirmasi (Alert di HP, `window.confirm` di web).
+4. **Tema Terang / Gelap / Ikuti Sistem** - dipilih di Pengaturan, tersimpan, dan berlaku di semua layar.
+
+Catatan platform: di HP cache memakai SQLite (`cacheRepository.ts`); di browser web dipakai `cacheRepository.web.ts` berbasis AsyncStorage dengan fungsi yang sama.
+
 ---
 
 # Welcome to your Expo app 👋
