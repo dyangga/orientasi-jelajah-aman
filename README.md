@@ -1,3 +1,13 @@
+# Jelajah Aman
+
+Aplikasi cuaca dan kualitas udara berbasis Expo (React Native + TypeScript) yang bisa dipakai juga saat offline berkat cache SQLite.
+
+## Status Data: cache-segar, cache-basi, dan first-run offline
+
+**Cache-segar** berarti data tersimpan di perangkat berumur kurang dari 30 menit (TTL), sehingga aplikasi langsung memakainya tanpa memanggil internet. **Cache-basi** berarti umur data sudah 30 menit atau lebih dan internet gagal dijangkau, sehingga aplikasi tetap menampilkan data lama itu dengan label oranye "Mode offline - data tersimpan mungkin sudah usang". **First-run offline** berarti belum ada cache sama sekali dan internet juga tidak ada, sehingga tidak ada data yang bisa ditampilkan dan pengguna hanya melihat pesan error beserta tombol "Coba Lagi". Label status ini penting karena pengguna berhak tahu apakah angka suhu dan kualitas udara yang dilihat itu baru dari internet atau salinan lama, supaya tidak salah mengambil keputusan (misalnya soal udara yang tidak sehat) berdasarkan data yang sudah usang.
+
+---
+
 # Welcome to your Expo app 👋
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
