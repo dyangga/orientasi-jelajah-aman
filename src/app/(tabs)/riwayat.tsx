@@ -20,6 +20,7 @@ import {
 } from "../../services/riwayatPencarianStorage";
 import { KotaFavorit } from "../../types/favorit";
 import { RiwayatPencarian } from "../../types/riwayat";
+import { konfirmasi } from "../../utils/konfirmasi";
 
 export default function TabRiwayat() {
   const [daftarFavorit, setDaftarFavorit] = useState<KotaFavorit[]>([]);
@@ -41,24 +42,15 @@ export default function TabRiwayat() {
 
   // Tambahan latihan mandiri: konfirmasi sebelum menghapus
   function konfirmasiHapus(kota: KotaFavorit) {
-    Alert.alert(
+    konfirmasi(
       "Konfirmasi Hapus",
       `Apakah kamu yakin ingin menghapus ${kota.nama}?`,
-      [
-        {
-          text: "Batal",
-          style: "cancel",
-        },
-        {
-          text: "Hapus",
-          style: "destructive",
-          onPress: () => {
-            hapus(kota.id).catch(() => {
-              Alert.alert("Error", "Gagal menghapus kota favorit.");
-            });
-          },
-        },
-      ],
+      "Hapus",
+      () => {
+        hapus(kota.id).catch(() => {
+          Alert.alert("Error", "Gagal menghapus kota favorit.");
+        });
+      },
     );
   }
 

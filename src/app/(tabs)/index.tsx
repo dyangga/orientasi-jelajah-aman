@@ -21,6 +21,7 @@ import { useDebounce } from "../../hooks/use-debounce";
 import {
   bersihkanCacheLama,
   daftarKotaTersimpan,
+  hapusCacheKota,
 } from "../../services/cacheRepository";
 import {
   BATAS_CACHE_MS,
@@ -35,6 +36,7 @@ import {
 } from "../../services/locationService";
 import { konversiTingkatAQI } from "../../services/weatherAdapter";
 import { HasilCuacaOffline, RingkasanKotaTersimpan } from "../../types/cache";
+import { konfirmasi } from "../../utils/konfirmasi";
 import { HasilGeocoding } from "../../types/geocoding";
 
 export default function HalamanUtama() {
@@ -132,6 +134,22 @@ export default function HalamanUtama() {
     }
   }
 
+  // Hapus cache satu kota, setelah pengguna menyetujui dialog konfirmasi
+  function hapusCacheSatuKota(k: RingkasanKotaTersimpan) {
+    konfirmasi(
+      "Hapus Data Tersimpan",
+      `Data cuaca ${k.nama} yang tersimpan di perangkat akan dihapus. Lanjutkan?`,
+      "Hapus",
+      () => {
+        hapusCacheKota(k.kunci)
+          .then(muatKotaTersimpan)
+          .catch(() => {
+            Alert.alert("Error", "Gagal menghapus data tersimpan.");
+          });
+      },
+    );
+  }
+
   // Kota yang dipilih dari hasil pencarian dicatat ke riwayat pencarian
   function pilihDariPencarian(kota: HasilGeocoding) {
     tambahRiwayat(kota).catch(() => {});
@@ -217,20 +235,34 @@ export default function HalamanUtama() {
               Tersimpan di perangkat (bisa dibuka offline)
             </Text>
             {kotaTersimpan.map((k) => (
-              <TouchableOpacity
+              <View
                 key={k.kunci}
-                onPress={() =>
-                  pilihKota({
-                    id: k.id,
-                    name: k.nama,
-                    latitude: k.latitude,
-                    longitude: k.longitude,
-                    country: "",
-                  })
-                }
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
               >
-                <Text>{k.nama}</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  onPress={() =>
+                    pilihKota({
+                      id: k.id,
+                      name: k.nama,
+                      latitude: k.latitude,
+                      longitude: k.longitude,
+                      country: "",
+                    })
+                  }
+                >
+                  <Text>{k.nama}</Text>
+                </TouchableOpacity>
+                <Button
+                  title="Hapus"
+                  accessibilityLabel={`Hapus data tersimpan ${k.nama}`}
+                  onPress={() => hapusCacheSatuKota(k)}
+                />
+              </View>
             ))}
           </View>
         )}
