@@ -15,7 +15,11 @@ export async function ambilCuacaOfflineFirst(
   kota: KotaUntukCache,
   opsi: OpsiAmbil = {}
 ): Promise<HasilCuacaOffline> {
-  const cache = await ambilCache(kota.latitude, kota.longitude);
+  // Jika SQLite bermasalah, tetap lanjut ke internet (jangan langsung gagal)
+  const cache = await ambilCache(kota.latitude, kota.longitude).catch((err) => {
+    console.warn("Gagal membaca cache SQLite:", err);
+    return null;
+  });
   const umur = cache ? Date.now() - cache.disimpanPada : Infinity;
 
   // 1. Cache masih segar -> pakai langsung, tanpa memanggil internet
@@ -27,7 +31,10 @@ export async function ambilCuacaOfflineFirst(
   const dariJaringan = await Promise.all([
     ambilCuaca(kota.latitude, kota.longitude),
     ambilKualitasUdara(kota.latitude, kota.longitude),
-  ]).catch(() => null);
+  ]).catch((err) => {
+    console.warn("Gagal mengambil data dari jaringan:", err);
+    return null;
+  });
 
   // 3. Internet gagal -> pakai cache lama jika ada, kalau tidak: menyerah
   if (!dariJaringan) {

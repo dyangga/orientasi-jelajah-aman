@@ -7,8 +7,7 @@ export async function ambilKualitasUdara(
   latitude: number,
   longitude: number,
 ): Promise<DataKualitasUdara> {
-  const url = `${BASE_URL}?latitude=${latitude}&longitude=${longitude}&current=european_aqi,pm2_5,
-pm10`;
+  const url = `${BASE_URL}?latitude=${latitude}&longitude=${longitude}&current=european_aqi,pm2_5,pm10`;
 
   const response = await fetch(url);
   if (!response.ok) {
